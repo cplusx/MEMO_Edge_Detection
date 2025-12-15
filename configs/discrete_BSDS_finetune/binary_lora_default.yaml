@@ -15,7 +15,7 @@ trainer_args:
   precision: 32
   strategy: "deepspeed_stage_2"
 edge_trainer:
-  target: pl_trainer.discrete_edge_trainer.MEMOEdgeLoRATrainer
+  target: pl_trainer.MEMO_trainer.MEMOEdgeLoRATrainer
   params:
     accumulate_grad_batches: 8
     loss_weights: 

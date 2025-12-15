@@ -15,7 +15,7 @@ trainer_args:
   precision: 32
   strategy: "deepspeed_stage_2"
 edge_trainer:
-  target: pl_trainer.discrete_edge_trainer.MEMOEdgeTrainer
+  target: pl_trainer.MEMO_trainer.MEMOEdgeTrainer
   params:
     accumulate_grad_batches: 4
     loss_weights: 
@@ -69,8 +69,8 @@ data:
       subdatasets:
         - target: edge_datasets.edge_datasets.LAION_synthetic_v2.LAIONSyntheticBinaryV2Dataset
           params: 
-            image_dir: /home/user/yc47434/laion/edge_detection/edge_detection
-            edge_dir: /home/user/yc47434/laion/edge_detection/laion_edge_v2
+            image_dir: /home/devdata/laion/edge_detection
+            edge_dir: /home/devdata/laion/edge_detection/laion_edge_v2
             image_shape: 
               - ${image_size}
               - ${image_size}
@@ -83,8 +83,8 @@ data:
       subdatasets:
         - target: edge_datasets.edge_datasets.LAION_synthetic_v2.LAIONSyntheticBinaryV2Dataset
           params: 
-            image_dir: /home/user/yc47434/laion/edge_detection/edge_detection
-            edge_dir: /home/user/yc47434/laion/edge_detection/laion_edge_v2
+            image_dir: /home/devdata/laion/edge_detection
+            edge_dir: /home/devdata/laion/edge_detection/laion_edge_v2
             image_shape: 
               - ${image_size}
               - ${image_size}
