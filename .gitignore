@@ -164,7 +164,7 @@ results
 images
 run*.sh
 edge_data
-opencv_edge
+*.gz
 *pth*
 experiments
 wandb

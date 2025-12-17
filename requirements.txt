@@ -1,0 +1,17 @@
+torch
+torchvision
+torchaudio
+diffusers
+wandb
+pytorch_lightning
+omegaconf
+scipy
+scikit-image
+scikit-learn
+accelerate
+opencv-python
+opencv-contrib-python
+einops
+timm
+albumentations
+deepspeed

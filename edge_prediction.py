@@ -90,8 +90,6 @@ if __name__ == '__main__':
 
     image_paths = sorted(glob(os.path.join(args.test_folder, '**/*.jpg'), recursive=True) + 
                         glob(os.path.join(args.test_folder, '**/*.png'), recursive=True))
-    # if 'multicue' in args.test_folder:
-    #     image_paths = image_paths[::-1][::10] # no need to evaluate all images, there are a lot of repeated images from subsequent frames
 
     model_path = args.model_path
     save_folder = os.path.join(args.save_folder)
