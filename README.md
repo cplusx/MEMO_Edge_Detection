@@ -1,9 +1,19 @@
 # MEMO Edge Detection
 The code for Masked Edge Prediction Model (CVPR 2026)
 ![MEMO Sample](pics/qualitative_baselines.jpg)
+## Table of Contents
+- [Introduction](#memo-edge-detection)
+- [Clone the repo and install the dependencies](#clone-the-repo-and-install-the-dependencies)
+- [Prepare the dataset](#prepare-the-dataset)
+    - [Create your own synthetic edge dataset](#create-your-own-synthetic-edge-dataset)
+    - [Download synthetic edge dataset](#or-download-synthetic-edge-dataset)
+- [Use trained Model](#use-trained-model)
+- [Train model on synthetic dataset](#to-train-model-on-synthetic-dataset)
+- [Finetune on pretrained model](#to-finetune-on-pretrained-model)
 
-### Install the dependencies
+## Clone the repo and install the dependencies
 ```bash
+git clone https://github.com/cplusx/MEMO_Edge_Detection.git
 pip install -r requirements.txt
 cd opencv_edge
 bash dld.sh
@@ -33,11 +43,15 @@ NOTE: you will need to install [SAM2](https://github.com/facebookresearch/sam2) 
 | Finetuned on BSDS | Using later-epoch base model | — | [link](https://huggingface.co/cplusx/MEMO_BSDS_ft_late/tree/main/checkpoint) |
 | Finetuned on BIPEDv2 | Using later-epoch base model | — | [link](https://huggingface.co/cplusx/MEMO_BIPED_ft/tree/main/checkpoint) |
 
+### How to use
+Download the trained model and run the following script
+
+NOTE: the synthetic data pretrained model should use config `configs/binary/discrete_v2data_binary_dinov2.yaml` and the finetuned models should use `configs/discrete_BSDS_finetune/binary_lora_default.yaml` or `configs/discrete_BIPED_finetune/binary_lora_default.yaml`.
 ```bash
 python edge_prediction \
     --test_folder [PATH_TO_TEST_FOLDER] \
     --save_folder [PATH_TO_SAVE_FOLDER] \
-    --config_file configs/discrete_BSDS_finetune/binary_lora_default.yaml \
+    --config_file [PATH_TO_CONFIG_FILE] \
     --model_path [PATH_TO_MODEL] \
     --guidance_scale 1.4 \
     --max_steps 20
@@ -47,7 +61,7 @@ python edge_prediction \
 ```bash
 python train.py --config_file configs/binary/discrete_v2data_binary_dinov2.yaml
 ```
-Remember to modify the image and edge dir in the config file
+Remember to modify the `image_dir` and `edge_dir` in the config file
 
 ### To finetune on pretrained model
 ```bash
