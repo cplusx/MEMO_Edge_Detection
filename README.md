@@ -1,6 +1,6 @@
 # MEMO Edge Detection
 The code for Masked Edge Prediction Model (CVPR 2026)
-![MEMO Sample](pics/qualitative_baselines.pdf)
+![MEMO Sample](pics/qualitative_baselines.jpg)
 
 ### Install the dependencies
 ```bash
