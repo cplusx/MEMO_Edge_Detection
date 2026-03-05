@@ -67,7 +67,7 @@ data:
       sampling_rates:
         - 1.
       subdatasets:
-        - target: edge_datasets.edge_datasets.LAION_synthetic_v2.LAIONSyntheticBinaryV2Dataset
+        - target: edge_datasets.edge_datasets.LAION_synthetic.LAIONSyntheticBinaryV2Dataset
           params: 
             image_dir: /home/devdata/laion/edge_detection
             edge_dir: /home/devdata/laion/edge_detection/laion_edge_v2
@@ -81,7 +81,7 @@ data:
     params:
       mode: "val"
       subdatasets:
-        - target: edge_datasets.edge_datasets.LAION_synthetic_v2.LAIONSyntheticBinaryV2Dataset
+        - target: edge_datasets.edge_datasets.LAION_synthetic.LAIONSyntheticBinaryV2Dataset
           params: 
             image_dir: /home/devdata/laion/edge_detection
             edge_dir: /home/devdata/laion/edge_detection/laion_edge_v2
