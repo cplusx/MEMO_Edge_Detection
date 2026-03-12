@@ -188,7 +188,6 @@ class MEMOEdgePipeline(DiffusionPipeline):
         mask_ratio_list = torch.flip(mask_ratio_list, dims=(1, )) # (steps, B), should be 1 -> 0
 
         if hasattr(self.denoiser, "get_dino_features"):
-            print('prepare dino features in advance')
             if guidance_scale > 1.0:
                 image_cond_input = torch.cat([
                     image_cond, torch.zeros_like(image_cond)
@@ -311,7 +310,6 @@ class MEMOEdgeLocalMaximumPipeline(MEMOEdgePipeline):
         )
 
         if hasattr(self.denoiser, "get_dino_features"):
-            print('prepare dino features in advance')
             if guidance_scale != 1.0:
                 image_cond_input = torch.cat([
                     image_cond, torch.zeros_like(image_cond)

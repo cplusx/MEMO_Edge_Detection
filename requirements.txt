@@ -15,3 +15,7 @@ einops
 timm
 albumentations
 deepspeed
+gradio
+onnx
+onnxruntime-gpu
+tensorrt-cu12

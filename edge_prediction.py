@@ -1,4 +1,5 @@
 import os
+import shutil
 import numpy as np
 import torch
 import argparse
@@ -8,8 +9,6 @@ from tqdm import tqdm
 from misc_utils.train_utils import get_obj_from_str
 from misc_utils.train_utils import get_models, get_edge_trainer
 from omegaconf import OmegaConf
-from edge_datasets.edge_datasets.LAION_synthetic import colors_panel_36
-
 def pad_image_to_fit_model(image, unit_size=16):
     h, w = image.shape[:2]
     if h % unit_size == 0:
@@ -64,14 +63,35 @@ def predict_one_image(pipe, image_path, guidance_scale=2.5, inference_steps=50, 
     pred_probs = pred_probs[0]  # (H, W, C)
     return pred.astype(np.int16), pred_probs.astype(np.float32)  # (H, W, C)
 
-def multiclass_to_binaryclass(pred_prob):
+def multiclass_to_prediction(pred_prob):
     # pred_prob: (num_classes, H, W) num class inlcude a background
     max_cls = pred_prob.shape[0] - 1
     category_to_binary_map = np.linspace(0, 1, max_cls+1, endpoint=True)
     category_to_binary_map = category_to_binary_map.reshape(-1, 1, 1)  # (num_classes+1, 1, 1)
 
-    binarized_edge = (pred_prob * category_to_binary_map).sum(axis=0)  # (H, W)
-    return (binarized_edge * 255).astype(np.uint8)  # (H, W)
+    prediction = (pred_prob * category_to_binary_map).sum(axis=0)  # (H, W)
+    return (prediction * 255).astype(np.uint8)  # (H, W)
+
+
+def quantized_to_binarized(pred_label):
+    return (pred_label > 0).astype(np.uint8) * 255
+
+
+def archive_legacy_output_dirs(save_folder):
+    legacy_root = os.path.join(save_folder, '_legacy_outputs')
+    for legacy_name in ('quantized', 'colorized'):
+        source_dir = os.path.join(save_folder, legacy_name)
+        if not os.path.isdir(source_dir):
+            continue
+
+        target_dir = os.path.join(legacy_root, legacy_name)
+        suffix = 1
+        while os.path.exists(target_dir):
+            target_dir = os.path.join(legacy_root, f'{legacy_name}_{suffix}')
+            suffix += 1
+
+        os.makedirs(os.path.dirname(target_dir), exist_ok=True)
+        shutil.move(source_dir, target_dir)
 
 if __name__ == '__main__':
 
@@ -80,6 +100,7 @@ if __name__ == '__main__':
     parser.add_argument('--save_folder', default="results", type=str, help='the folder to save results')
     parser.add_argument('--config_file', default="configs/edge_pred_base/quant_6/edge_unet_test.yaml", type=str, help='the default config file')
     parser.add_argument('--model_path', type=str, help='the path of the model')
+    parser.add_argument('--base_model_path', type=str, default=None, help='optional base pretrained checkpoint for LoRA finetuned models')
     parser.add_argument('--guidance_scale', type=float, help='the guidance scale for the MEMO model', default=2.5)
     parser.add_argument('--max_steps', type=int, help='the max steps for the MEMO model', default=50)
     parser.add_argument('--dino_size_mode', type=str, help='the dino image size mode, fixed (224,224) or adaptive (nearest to 14xN of image size)', default='fixed')
@@ -93,12 +114,11 @@ if __name__ == '__main__':
 
     model_path = args.model_path
     save_folder = os.path.join(args.save_folder)
-    save_folder_quantized = os.path.join(save_folder, 'quantized')
-    save_folder_colorized = os.path.join(save_folder, 'colorized')
+    archive_legacy_output_dirs(save_folder)
+    save_folder_prediction = os.path.join(save_folder, 'prediction')
     save_folder_binarized = os.path.join(save_folder, 'binarized')
     os.makedirs(save_folder, exist_ok=True)
-    os.makedirs(save_folder_quantized, exist_ok=True)
-    os.makedirs(save_folder_colorized, exist_ok=True)
+    os.makedirs(save_folder_prediction, exist_ok=True)
     os.makedirs(save_folder_binarized, exist_ok=True)
 
     config_file = args.config_file
@@ -107,6 +127,8 @@ if __name__ == '__main__':
 
     trainer_target = config.edge_trainer.target
     if 'LoRA' in trainer_target:
+        if args.base_model_path is not None:
+            config.edge_trainer.params.init_weights = args.base_model_path
         models = get_models(config)
         edge_trainer = get_edge_trainer(models, edge_model_configs=config.edge_trainer)
         denoiser = edge_trainer.denoiser
@@ -124,18 +146,14 @@ if __name__ == '__main__':
 
     for image_path in tqdm(image_paths):
         image_name = os.path.basename(image_path)
-        save_path_quantized = os.path.join(save_folder_quantized, image_name.replace('.jpg', '.png'))
-        save_path_colorized = os.path.join(save_folder_colorized, image_name.replace('.jpg', '.png'))
+        save_path_prediction = os.path.join(save_folder_prediction, image_name.replace('.jpg', '.png'))
         save_path_binarized = os.path.join(save_folder_binarized, image_name.replace('.jpg', '.png'))
-        if os.path.exists(save_path_binarized):
+        if os.path.exists(save_path_prediction):
             continue
 
         pred_label, pred_prob = predict_one_image(pipe, image_path, guidance_scale=guidance_scale, inference_steps=args.max_steps, dino_size_mode=args.dino_size_mode, conf_thres=args.conf_thres)
-        colorized_edge = colors_panel_36[pred_label]
-
-        cv2.imwrite(save_path_quantized, pred_label.astype(np.uint8))
-        cv2.imwrite(save_path_colorized, cv2.cvtColor(colorized_edge, cv2.COLOR_RGB2BGR))
-
-        binarized_edge = multiclass_to_binaryclass(pred_prob.transpose(2, 0, 1))
-        cv2.imwrite(save_path_binarized, binarized_edge)
+        prediction = multiclass_to_prediction(pred_prob.transpose(2, 0, 1))
+        binarized = quantized_to_binarized(pred_label)
+        cv2.imwrite(save_path_prediction, prediction)
+        cv2.imwrite(save_path_binarized, binarized)
         # break

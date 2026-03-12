@@ -6,7 +6,9 @@ MEAN = torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1)
 STD = torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1)
 
 def preprocess_image(x):
-    return (x - MEAN.to(x.device)) / STD.to(x.device)
+    mean = MEAN.to(device=x.device, dtype=x.dtype)
+    std = STD.to(device=x.device, dtype=x.dtype)
+    return (x - mean) / std
 
 class UNet2DwithDINOv2(UNet2DModel):
     def __init__(self, *args, cond_dim=3, dino_size=(224, 224), dino_name='dinov2_vitb14_reg', **kwargs):
