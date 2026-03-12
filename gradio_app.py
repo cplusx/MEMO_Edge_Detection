@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import sys
+import threading
 import time
 from pathlib import Path
-from typing import Dict, Tuple
+from typing import Dict, List, Set, Tuple
 
 import cv2
 import gradio as gr
@@ -15,6 +16,8 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from demo_example_assets import ensure_demo_examples, list_demo_examples
 from demo_model_registry import list_model_presets, resolve_model_preset
+from download_checkpoints import download_file
+from checkpoint_registry import get_checkpoint_metadata
 from deployment.memo_runtime import OptimizedMEMOPredictor
 
 
@@ -30,6 +33,57 @@ def _load_demo_example_paths() -> Tuple[str, ...]:
 
 DEMO_EXAMPLE_PATHS = _load_demo_example_paths()
 PREDICTOR_CACHE: Dict[Tuple[str, str, str, str, str, bool], OptimizedMEMOPredictor] = {}
+MODEL_DOWNLOAD_LOCK = threading.Lock()
+ACTIVE_MODEL_DOWNLOADS: Set[str] = set()
+
+
+def _get_missing_checkpoints(model_name: str) -> List[str]:
+    preset = list_model_presets()[model_name]
+    missing = []
+    for checkpoint_name in preset.get("required_checkpoints", []):
+        metadata = get_checkpoint_metadata(str(checkpoint_name))
+        if not Path(metadata["path"]).exists():
+            missing.append(str(checkpoint_name))
+    return missing
+
+
+def _download_checkpoint_bundle(checkpoint_names: List[str]) -> None:
+    try:
+        for checkpoint_name in checkpoint_names:
+            metadata = get_checkpoint_metadata(checkpoint_name)
+            download_file(str(metadata["url"]), Path(metadata["path"]), overwrite=False)
+    finally:
+        with MODEL_DOWNLOAD_LOCK:
+            for checkpoint_name in checkpoint_names:
+                ACTIVE_MODEL_DOWNLOADS.discard(checkpoint_name)
+
+
+def _ensure_model_download_started(model_name: str) -> Tuple[bool, str]:
+    missing_checkpoints = _get_missing_checkpoints(model_name)
+    if not missing_checkpoints:
+        return False, ""
+
+    with MODEL_DOWNLOAD_LOCK:
+        checkpoints_to_start = [name for name in missing_checkpoints if name not in ACTIVE_MODEL_DOWNLOADS]
+        for checkpoint_name in checkpoints_to_start:
+            ACTIVE_MODEL_DOWNLOADS.add(checkpoint_name)
+
+    if checkpoints_to_start:
+        thread = threading.Thread(
+            target=_download_checkpoint_bundle,
+            args=(checkpoints_to_start,),
+            daemon=True,
+        )
+        thread.start()
+        return True, (
+            "The selected model is not available locally yet. "
+            "Background download started. Please try again after the download finishes."
+        )
+
+    return True, (
+        "The selected model is currently downloading in the background. "
+        "Please try again after the download finishes."
+    )
 
 
 def get_predictor(
@@ -72,6 +126,14 @@ def _format_model_summary(model_name: str) -> str:
     return f"Model: {model_name}\n{preset['description']}"
 
 
+def on_model_selected(model_name: str) -> str:
+    download_started, download_message = _ensure_model_download_started(model_name)
+    if download_started:
+        gr.Info(download_message)
+        return f"{_format_model_summary(model_name)}\n{download_message}"
+    return _format_model_summary(model_name)
+
+
 def run_inference(
     image_rgb: np.ndarray,
     model_name: str,
@@ -84,6 +146,11 @@ def run_inference(
 ) -> Tuple[np.ndarray, np.ndarray, str]:
     if image_rgb is None:
         raise gr.Error("Please upload an image.")
+
+    download_started, download_message = _ensure_model_download_started(model_name)
+    if download_started:
+        gr.Info(download_message)
+        return None, None, f"{_format_model_summary(model_name)}\n{download_message}"
 
     predictor = get_predictor(model_name, device, precision, compile_model)
     image_bgr = cv2.cvtColor(image_rgb, cv2.COLOR_RGB2BGR)
@@ -134,7 +201,7 @@ def build_demo() -> gr.Blocks:
                 model_name = gr.Dropdown(
                     label="Model",
                     choices=list(MODEL_NAMES),
-                    value="Synthetic Late",
+                    value="BIPED Late LoRA",
                 )
                 guidance_scale = gr.Slider(label="Guidance Scale", minimum=1.0, maximum=3.0, value=1.4, step=0.1)
                 max_steps = gr.Slider(label="Max Steps", minimum=1, maximum=50, value=20, step=1)
@@ -175,6 +242,11 @@ def build_demo() -> gr.Blocks:
                 compile_model,
             ],
             outputs=[prediction_output, binarized_output, summary_output],
+        )
+        model_name.change(
+            fn=on_model_selected,
+            inputs=[model_name],
+            outputs=[summary_output],
         )
 
     return demo

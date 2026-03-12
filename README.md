@@ -135,7 +135,12 @@ The Gradio UI supports:
 - image upload
 - example images downloaded from public URLs
 - model selection across the prepared MEMO checkpoints
+- automatic background checkpoint download when the selected model is not available locally
 - controllable hyperparameters including guidance scale, steps, resize long side, device, and precision
+
+Interface preview:
+
+![MEMO web interface](pics/MEMO_webinterface.jpg)
 
 ## ONNX Runtime Inference
 

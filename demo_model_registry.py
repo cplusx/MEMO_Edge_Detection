@@ -18,24 +18,28 @@ MODEL_PRESETS: Dict[str, Dict[str, object]] = {
         "config_file": PROJECT_ROOT / "configs" / "binary" / "discrete_v2data_binary_dinov2.yaml",
         "model_path": SYNTHETIC_LATE_PATH,
         "base_model_path": None,
+        "required_checkpoints": ["synthetic-late"],
         "description": "Synthetic pretrained model from the later epoch checkpoint.",
     },
     "BSDS Late LoRA": {
         "config_file": PROJECT_ROOT / "configs" / "discrete_BSDS_finetune" / "binary_lora_default.yaml",
         "model_path": PROJECT_ROOT / "pretrained_models" / "MEMO_BSDS_ft_late" / "mp_rank_00_model_states.pt",
         "base_model_path": SYNTHETIC_LATE_PATH,
+        "required_checkpoints": ["synthetic-late", "bsds-late"],
         "description": "BSDS finetuned LoRA model built on the late synthetic base checkpoint.",
     },
     "BSDS Early LoRA": {
         "config_file": PROJECT_ROOT / "configs" / "discrete_BSDS_finetune" / "binary_lora_default.yaml",
         "model_path": PROJECT_ROOT / "pretrained_models" / "MEMO_BSDS_ft_early" / "mp_rank_00_model_states.pt",
         "base_model_path": SYNTHETIC_LATE_PATH,
+        "required_checkpoints": ["synthetic-late", "bsds-early"],
         "description": "BSDS finetuned LoRA model built on the early synthetic finetuning path.",
     },
     "BIPED Late LoRA": {
         "config_file": PROJECT_ROOT / "configs" / "discrete_BIPED_finetune" / "binary_lora_default.yaml",
         "model_path": PROJECT_ROOT / "pretrained_models" / "MEMO_BIPED_ft" / "mp_rank_00_model_states.pt",
         "base_model_path": SYNTHETIC_LATE_PATH,
+        "required_checkpoints": ["synthetic-late", "biped-late"],
         "description": "BIPED finetuned LoRA model built on the late synthetic base checkpoint.",
     },
 }
