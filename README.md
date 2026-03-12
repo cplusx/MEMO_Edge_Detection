@@ -201,7 +201,7 @@ Main output files:
 
 You can also download pre-exported ONNX models directly from Hugging Face:
 
-- `cplusx/MEMO_onnx_runtime`
+- [cplusx/MEMO_onnx_runtime](https://huggingface.co/cplusx/MEMO_onnx_runtime/tree/main)
 
 Download one model folder into the local `onnx_models` directory:
 
