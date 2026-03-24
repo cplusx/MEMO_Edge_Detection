@@ -1,5 +1,5 @@
 # MEMO Edge Detection
-The code for Masked Edge Prediction Model (CVPR 2026)
+The code for [Masked Edge Prediction Model](https://arxiv.org/abs/2603.20782) (CVPR 2026)
 ![MEMO Sample](pics/qualitative_baselines.jpg)
 ## Table of Contents
 - [Introduction](#memo-edge-detection)
