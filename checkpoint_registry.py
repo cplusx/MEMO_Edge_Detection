@@ -44,6 +44,20 @@ CHECKPOINTS: Dict[str, Dict[str, object]] = {
         "url": "https://huggingface.co/cplusx/MEMO_BIPED_ft/resolve/main/checkpoint/mp_rank_00_model_states.pt",
         "description": "BIPED finetuned LoRA model built on the late synthetic base checkpoint.",
     },
+    "synthetic-tiny": {
+        "display_name": "Synthetic Tiny",
+        "folder_name": "MEMO_1_dinov2_tiny",
+        "filename": "mp_rank_00_model_states.pt",
+        "url": "https://huggingface.co/cplusx/MEMO_tiny/resolve/main/MEMO_1_dinov2_tiny/last.ckpt/checkpoint/mp_rank_00_model_states.pt",
+        "description": "Tiny synthetic pretrained model.",
+    },
+    "biped-tiny": {
+        "display_name": "BIPED Tiny",
+        "folder_name": "MEMO_BIPED_tiny",
+        "filename": "mp_rank_00_model_states.pt",
+        "url": "https://huggingface.co/cplusx/MEMO_tiny/resolve/main/binary_lora_biped_tiny/last.ckpt/checkpoint/mp_rank_00_model_states.pt",
+        "description": "Tiny BIPED finetuned model.",
+    },
 }
 
 

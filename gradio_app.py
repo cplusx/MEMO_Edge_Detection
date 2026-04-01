@@ -33,6 +33,7 @@ def _load_demo_example_paths() -> Tuple[str, ...]:
 
 DEMO_EXAMPLE_PATHS = _load_demo_example_paths()
 PREDICTOR_CACHE: Dict[Tuple[str, str, str, str, str, bool], OptimizedMEMOPredictor] = {}
+PREDICTOR_CACHE_LOCK = threading.Lock()
 MODEL_DOWNLOAD_LOCK = threading.Lock()
 ACTIVE_MODEL_DOWNLOADS: Set[str] = set()
 
@@ -102,18 +103,19 @@ def get_predictor(
         precision,
         compile_model,
     )
-    predictor = PREDICTOR_CACHE.get(cache_key)
-    if predictor is None:
-        predictor = OptimizedMEMOPredictor(
-            config_file=preset["config_file"],
-            model_path=preset["model_path"],
-            base_model_path=preset["base_model_path"],
-            device=device,
-            precision=precision,
-            enable_compile=compile_model,
-            enable_channels_last=True,
-        )
-        PREDICTOR_CACHE[cache_key] = predictor
+    with PREDICTOR_CACHE_LOCK:
+        predictor = PREDICTOR_CACHE.get(cache_key)
+        if predictor is None:
+            predictor = OptimizedMEMOPredictor(
+                config_file=preset["config_file"],
+                model_path=preset["model_path"],
+                base_model_path=preset["base_model_path"],
+                device=device,
+                precision=precision,
+                enable_compile=compile_model,
+                enable_channels_last=True,
+            )
+            PREDICTOR_CACHE[cache_key] = predictor
     return predictor
 
 
@@ -174,8 +176,11 @@ def run_inference(
         f"Resize long side: {_normalize_resize_long_side(int(resize_long_side))}\n"
         f"Device: {device}\n"
         f"Precision: {precision}\n"
-        f"Compile enabled: {compile_model}"
+        f"Compile requested: {compile_model}\n"
+        f"Compile active: {predictor.compile_active}"
     )
+    if predictor._compile_failure:
+        summary += f"\nCompile fallback: {predictor._compile_failure.splitlines()[0]}"
     return prediction, binarized, summary
 
 

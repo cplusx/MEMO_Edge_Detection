@@ -39,6 +39,7 @@ def main() -> None:
     parser.add_argument("--test_folder", required=True, type=str)
     parser.add_argument("--config_file", required=True, type=str)
     parser.add_argument("--model_path", required=True, type=str)
+    parser.add_argument("--base_model_path", type=str, default=None)
     parser.add_argument("--dino_encoder_path", required=True, type=str)
     parser.add_argument("--denoiser_path", required=True, type=str)
     parser.add_argument("--guidance_scale", type=float, default=1.4)
@@ -52,6 +53,7 @@ def main() -> None:
     pytorch_predictor = OptimizedMEMOPredictor(
         config_file=args.config_file,
         model_path=args.model_path,
+        base_model_path=args.base_model_path,
         device="cuda",
         guidance_scale=args.guidance_scale,
         max_steps=args.max_steps,

@@ -1,0 +1,106 @@
+expt_dir: experiments
+num_quantize_level: 1
+num_out_channels: 2
+image_size: 256
+test_image_size: ${image_size}
+expt_name: MEMO_${num_quantize_level}_dinov2_tiny
+trainer_args:
+  max_epochs: 500
+  accelerator: "gpu"
+  devices: [0,1]
+  limit_train_batches: 3200
+  limit_val_batches: 1
+  check_val_every_n_epoch: 1
+  log_every_n_steps: 5
+  precision: 32
+  strategy: "deepspeed_stage_2"
+edge_trainer:
+  target: pl_trainer.MEMO_trainer.MEMOEdgeTrainer
+  params:
+    accumulate_grad_batches: 8
+    loss_weights:
+      focal_xentropy: 1.0
+    optim_args:
+      lr: 5e-5
+    use_8bit_adam: False
+    gradient_checkpointing: True
+    use_ema: True
+    ema_decay: 0.99
+    ema_start: 5000
+    cond_drop_rate: 0.1
+    guidance_scale: 2.0
+pipe:
+  target: pipelines.MEMO_pipeline.MEMOEdgeLocalMaximumPipeline
+  params: {}
+denoiser:
+  target: models.UNet_with_dinov2.UNet2DwithDINOv2
+  params:
+    in_channels: 16
+    out_channels: ${num_out_channels}
+    dino_name: dinov2_vits14
+    down_block_types:
+      - DownBlock2D
+      - DownBlock2D
+      - DownBlock2D
+    up_block_types:
+      - UpBlock2D
+      - UpBlock2D
+      - UpBlock2D
+    block_out_channels:
+      - 64
+      - 128
+      - 192
+    layers_per_block: 5
+    norm_num_groups: 16
+data:
+  batch_size: 4
+  val_batch_size: 4
+  train_shuffle: true
+  val_shuffle: true
+  collate_fn:
+    target: edge_datasets.dataset_utils.image_edge_unet_collate_fn
+  train:
+    target: edge_datasets.dataset_utils.JointDataset
+    params:
+      mode: "train"
+      sampling_rates:
+        - 1.
+      subdatasets:
+        - target: edge_datasets.edge_datasets.LAION_synthetic.LAIONSyntheticBinaryV2Dataset
+          params:
+            image_dir: /home/devdata/laion/edge_detection
+            edge_dir: /home/devdata/laion/edge_detection/laion_edge_v2
+            image_shape:
+              - ${image_size}
+              - ${image_size}
+            mode: train
+            num_quantize_level: 6
+  val:
+    target: edge_datasets.dataset_utils.ConcatDataset
+    params:
+      mode: "val"
+      subdatasets:
+        - target: edge_datasets.edge_datasets.LAION_synthetic.LAIONSyntheticBinaryV2Dataset
+          params:
+            image_dir: /home/devdata/laion/edge_detection
+            edge_dir: /home/devdata/laion/edge_detection/laion_edge_v2
+            image_shape:
+              - ${image_size}
+              - ${image_size}
+            num_quantize_level: 6
+            mode: test
+            max_samples: 100
+callbacks:
+  - target: pytorch_lightning.callbacks.ModelCheckpoint
+    params:
+      dirpath: "${expt_dir}/${expt_name}"
+      filename: "{epoch:04d}"
+      monitor: epoch
+      mode: max
+      save_top_k: 5
+      save_last: true
+      every_n_epochs: 20
+  - target: callbacks.edge_training_logger.MEMOTrainingLogger
+    params:
+      max_num_images: 8
+    require_wandb: true

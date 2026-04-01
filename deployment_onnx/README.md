@@ -84,6 +84,27 @@ Available ONNX folders in the Hugging Face repository:
 - `memo_bsds_early_lora_fp16`
 - `memo_bsds_late_lora_fp16`
 - `memo_biped_late_lora_fp16`
+- `memo_synthetic_tiny_fp16`
+- `memo_biped_tiny_fp16`
+- `memo_synthetic_tiny_int8`
+- `memo_biped_tiny_int8`
+
+To build INT8 variants, first export FP32 ONNX models and then quantize them:
+
+```bash
+python deployment_onnx/export_onnx.py \
+  --config_file configs/binary/discrete_v2data_binary_dinov2_tiny.yaml \
+  --model_path pretrained_models/MEMO_1_dinov2_tiny/mp_rank_00_model_states.pt \
+  --output_dir onnx_models/memo_synthetic_tiny_fp32 \
+  --height 384 \
+  --width 384 \
+  --precision fp32
+
+python deployment_onnx/quantize_onnx.py \
+  --encoder_model onnx_models/memo_synthetic_tiny_fp32/dino_encoder.onnx \
+  --denoiser_model onnx_models/memo_synthetic_tiny_fp32/memo_denoiser.onnx \
+  --output_dir onnx_models/memo_synthetic_tiny_int8
+```
 
 ## LoRA Finetuned Models
 

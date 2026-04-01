@@ -49,9 +49,11 @@ NOTE: you will need to install [SAM2](https://github.com/facebookresearch/sam2) 
 |---|---|---|---|
 | Trained on synthetic dataset | Earlier epoch | Prediction is less crisp, but has a slightly higher benchmarking score when finetuned. | [link](https://huggingface.co/cplusx/MEMO_laion_pretraining/tree/main/epoch%3D0079.ckpt/checkpoint) |
 | Trained on synthetic dataset | Later epoch | Prediction is crisper, but has a slightly lower benchmarking score when finetuned. | [link](https://huggingface.co/cplusx/MEMO_laion_pretraining/tree/main/epoch%3D0279.ckpt/checkpoint) |
+| Tiny synthetic pretrained | Tiny | Compact MEMO variant trained on the synthetic dataset. | [link](https://huggingface.co/cplusx/MEMO_tiny/tree/main/MEMO_1_dinov2_tiny/last.ckpt/checkpoint) |
 | Finetuned on BSDS | Using earlier-epoch base model | — | [link](https://huggingface.co/cplusx/MEMO_BSDS_ft_early/tree/main/checkpoint) |
 | Finetuned on BSDS | Using later-epoch base model | — | [link](https://huggingface.co/cplusx/MEMO_BSDS_ft_late/tree/main/checkpoint) |
 | Finetuned on BIPEDv2 | Using later-epoch base model | — | [link](https://huggingface.co/cplusx/MEMO_BIPED_ft/tree/main/checkpoint) |
+| Tiny finetuned on BIPEDv2 | Tiny | Tiny MEMO variant finetuned on BIPEDv2. | [link](https://huggingface.co/cplusx/MEMO_tiny/tree/main/binary_lora_biped_tiny/last.ckpt/checkpoint) |
 
 ### How to use
 Download the trained model and run the following script
@@ -88,6 +90,7 @@ The checkpoint downloader can list, download, and resolve local paths for all pu
 python download_checkpoints.py --list
 python download_checkpoints.py --model synthetic-late
 python download_checkpoints.py --model bsds-late --model biped-late
+python download_checkpoints.py --model synthetic-tiny --model biped-tiny
 python download_checkpoints.py --all
 python download_checkpoints.py --model synthetic-late --output-root /path/to/checkpoints
 python download_checkpoints.py --model bsds-late --print-path
@@ -228,6 +231,19 @@ Available ONNX folders in the Hugging Face repository:
 - `memo_bsds_early_lora_fp16`
 - `memo_bsds_late_lora_fp16`
 - `memo_biped_late_lora_fp16`
+- `memo_synthetic_tiny_fp16`
+- `memo_biped_tiny_fp16`
+- `memo_synthetic_tiny_int8`
+- `memo_biped_tiny_int8`
+
+You can build the INT8 variants from an FP32 export with:
+
+```bash
+python deployment_onnx/quantize_onnx.py \
+    --encoder_model onnx_models/memo_synthetic_tiny_fp32/dino_encoder.onnx \
+    --denoiser_model onnx_models/memo_synthetic_tiny_fp32/memo_denoiser.onnx \
+    --output_dir onnx_models/memo_synthetic_tiny_int8
+```
 
 ### Run ONNX Runtime Inference
 

@@ -11,6 +11,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent
 
 
 SYNTHETIC_LATE_PATH = get_checkpoint_path("synthetic-late")
+SYNTHETIC_TINY_PATH = get_checkpoint_path("synthetic-tiny")
 
 
 MODEL_PRESETS: Dict[str, Dict[str, object]] = {
@@ -41,6 +42,20 @@ MODEL_PRESETS: Dict[str, Dict[str, object]] = {
         "base_model_path": SYNTHETIC_LATE_PATH,
         "required_checkpoints": ["synthetic-late", "biped-late"],
         "description": "BIPED finetuned LoRA model built on the late synthetic base checkpoint.",
+    },
+    "Synthetic Tiny": {
+        "config_file": PROJECT_ROOT / "configs" / "binary" / "discrete_v2data_binary_dinov2_tiny.yaml",
+        "model_path": SYNTHETIC_TINY_PATH,
+        "base_model_path": None,
+        "required_checkpoints": ["synthetic-tiny"],
+        "description": "Tiny synthetic pretrained model.",
+    },
+    "BIPED Tiny": {
+        "config_file": PROJECT_ROOT / "configs" / "discrete_BIPED_finetune" / "binary_lora_tiny.yaml",
+        "model_path": get_checkpoint_path("biped-tiny"),
+        "base_model_path": SYNTHETIC_TINY_PATH,
+        "required_checkpoints": ["synthetic-tiny", "biped-tiny"],
+        "description": "Tiny BIPED finetuned model.",
     },
 }
 

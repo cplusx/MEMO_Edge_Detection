@@ -131,6 +131,9 @@ class OptimizedMEMOPredictor:
         self.enable_channels_last = enable_channels_last
         self.quantization = quantization
         self.resize_long_side = resize_long_side
+        self.compile_active = False
+        self._compile_failure = None
+        self._uncompiled_denoiser: Optional[nn.Module] = None
         self.device = self._resolve_device(device)
         self.config = OmegaConf.load(self.config_file)
         self.pipe = self._build_pipeline()
@@ -168,6 +171,7 @@ class OptimizedMEMOPredictor:
         pipe = get_obj_from_str(self.config.pipe.target)(denoiser=denoiser, **self.config.pipe.params)
         pipe = pipe.to(self.device)
         pipe.denoiser.eval()
+        self._uncompiled_denoiser = pipe.denoiser
         try:
             pipe.set_progress_bar_config(disable=True)
         except Exception:
@@ -180,11 +184,28 @@ class OptimizedMEMOPredictor:
             if self.enable_channels_last:
                 pipe.denoiser.to(memory_format=torch.channels_last)
             if self.enable_compile and hasattr(torch, "compile"):
-                pipe.denoiser = torch.compile(pipe.denoiser, mode="reduce-overhead", fullgraph=False)
+                try:
+                    pipe.denoiser = torch.compile(pipe.denoiser, mode="reduce-overhead", fullgraph=False)
+                    self.compile_active = True
+                except Exception as exc:
+                    self._compile_failure = f"{type(exc).__name__}: {exc}"
+                    pipe.denoiser = self._uncompiled_denoiser
         elif self.device.type == "cpu" and self.quantization == "dynamic-int8":
             pipe.denoiser = torch.ao.quantization.quantize_dynamic(pipe.denoiser, {nn.Linear}, dtype=torch.qint8)
 
         return pipe
+
+    def _disable_compile(self, exc: Exception) -> None:
+        self._compile_failure = f"{type(exc).__name__}: {exc}"
+        self.compile_active = False
+        self.enable_compile = False
+        if self._uncompiled_denoiser is not None:
+            self.pipe.denoiser = self._uncompiled_denoiser
+        if hasattr(torch, "_dynamo"):
+            try:
+                torch._dynamo.reset()
+            except Exception:
+                pass
 
     def _autocast_context(self):
         if self.device.type != "cuda":
@@ -237,7 +258,13 @@ class OptimizedMEMOPredictor:
 
         with torch.inference_mode():
             with self._autocast_context():
-                return self.pipe(**call_kwargs)
+                try:
+                    return self.pipe(**call_kwargs)
+                except Exception as exc:
+                    if self.compile_active:
+                        self._disable_compile(exc)
+                        return self.pipe(**call_kwargs)
+                    raise
 
     def _predict_prepared_batch(
         self,
